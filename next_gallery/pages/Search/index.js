@@ -1,5 +1,26 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
+
+// export async function getServerSideProps() {
+//     const InitPhotos = await searchPhotos('ishay');
+//     return { props: { InitPhotos }};
+// }
+
+export async function getStaticProps() {
+    const InitPhotos = await searchPhotos('ishay');
+    return { props: { InitPhotos }};
+}
+
+async function searchPhotos(query) {
+    const api_key = 'b4f935ecf2ae1382defc3b002a7f6b80';
+    const url = 'https://api.flickr.com/services/rest/?method=flickr.photos.search&' +
+        'api_key=' + api_key + '&text=' + query + '&format=json&per_page=60' +
+        '&nojsoncallback=1&sort=interestingness-desc';
+
+    console.log(url)
+    const res = await axios.get(url);
+    return res.data.photos.photo;
+}
 
 const Photo = ({ photo_data, source }) => {
 
@@ -17,7 +38,7 @@ const Photo = ({ photo_data, source }) => {
         );
 };
 
-const PhotoContainer = ({ photos }) => {
+const PhotoContainer = ({ photos = [] }) => {
     const [displayNum, setDisplayNum] = useState(10);
 
         return (
@@ -39,39 +60,29 @@ const PhotoContainer = ({ photos }) => {
         );
     };
 
-const Search = () => {
-    const [photos, setPhotos] = useState([]);
-
-    const searchPhotos = useCallback((query) => {
-        const api_key = 'b4f935ecf2ae1382defc3b002a7f6b80';
-        const url = 'https://api.flickr.com/services/rest/?method=flickr.photos.search&' +
-            'api_key=' + api_key + '&text=' + query + '&format=json&per_page=60' +
-            '&nojsoncallback=1&sort=interestingness-desc';
-
-        axios.get(url).then(res => {
-            var res_dict = res.data.photos.photo;
-            setPhotos(res_dict);
-        });
-    }, [setPhotos]);
+const Search = ({ staticProps, InitPhotos = [] }) => {
+    const [photos, setPhotos] = useState(InitPhotos);
 
         return (
             <div>
-                <SearchField searchPhotos={searchPhotos}/>
+                {staticProps}
+                <SearchField searchPhotos={searchPhotos} setPhotos={setPhotos}/>
                 <PhotoContainer photos={photos}/>
             </div>
         );
     }
 
-const SearchField = ({ searchPhotos }) => {
+const SearchField = ({ searchPhotos, setPhotos }) => {
     const [value, setValue] = useState('');
 
     const handleChange = (event) => {
         setValue(event.target.value);
     }
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async(event) => {
         event.preventDefault();
-        searchPhotos(value);
+        const res = await searchPhotos(value);
+        setPhotos(res);
     }
 
     return (
